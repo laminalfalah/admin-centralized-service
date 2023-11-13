@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: '@project.name@'
+  config:
+    import: "optional:configserver:"
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 10
+        max-interval: 1500
+        initial-interval: 1500
+        multiplier: 1.2
+      label: master
+      uri: http://10.128.24.23:8888/
+      initialize-on-context-refresh: true
+      name: ${spring.application.name}

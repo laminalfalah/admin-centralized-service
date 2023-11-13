@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-centralized
+  namespace: core
+data:
+  SPRING_MAIN_CLOUD_PLATFORM: 'kubernetes'
+  SPRING_PROFILES_ACTIVE: 'k8s'
+  SPRING_CLOUD_CONFIG_URI: 'http://config-centralized.core:8888/'
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: 'http://zipkin.core:9411/api/v2/spans'
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: 'http://eureka.core:8080/eureka'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-centralized
+  namespace: core
+type: Opaque
+data:
+  SPRING_BOOT_ADMIN_NOTIFY_TELEGRAM_AUTH_TOKEN: 'Ym90NjM2MDc2Mzk0NTpBQUZabG5UR1ZFbzJrNlRqNDMzNVFPd2EwRFFub0ktWmlmVQ=='
+  SPRING_BOOT_ADMIN_NOTIFY_TELEGRAM_CHAT_ID: 'LTEwMDE5NzA3OTU1NjM='
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-centralized
+  namespace: core
+  labels:
+    k8s-app: admin-centralized
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: admin-centralized
+  template:
+    metadata:
+      labels:
+        k8s-app: admin-centralized
+    spec:
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 10.96.0.10
+        searches:
+          - default.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: ndots
+            value: "2"
+          - name: edns0
+      containers:
+        - name: admin-centralized
+          image: laminalfalah/admin-centralized:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: EUREKA_INSTANCE_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TZ
+              value: Asia/Jakarta
+          envFrom:
+            - configMapRef:
+                name: admin-centralized
+            - secretRef:
+                name: admin-centralized
+          volumeMounts:
+            - name: spring-log
+              mountPath: /home/admin/data/logs
+      volumes:
+        - name: spring-log
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-centralized
+  namespace: core
+spec:
+  type: LoadBalancer
+  selector:
+    k8s-app: admin-centralized
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
