@@ -68,6 +68,22 @@ spec:
                 name: admin-centralized
             - secretRef:
                 name: admin-centralized
+          livenessProbe:
+            httpGet:
+              port: http
+              path: /livez
+            periodSeconds: 60
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: http
+              path: /readyz
+            periodSeconds: 60
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
           volumeMounts:
             - name: spring-log
               mountPath: /home/admin/data/logs
